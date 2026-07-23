@@ -131,7 +131,7 @@ st.markdown("""
 }
 
 /* ---------- Streamlit widget overrides ---------- */
-[data-testid="stSelectbox"] label, .stSlider label {
+[data-testid="stSlider"] label {
     font-family: 'IBM Plex Sans', sans-serif !important;
     color: var(--text-muted) !important;
     font-size: 13px !important;
@@ -144,20 +144,23 @@ div[data-baseweb="select"] > div {
     border-color: var(--border-col) !important;
     color: var(--text-primary) !important;
 }
-.stSlider [data-baseweb="slider"] div[role="slider"] {
+/* Force amber on any inline-styled element inside the slider (covers both hex and rgb formats
+   Streamlit may use for the filled track + thumb), while leaving the unfilled track untouched. */
+[data-testid="stSlider"] div[data-baseweb="slider"] div[style*="background-color"] {
     background-color: var(--accent-amber) !important;
     border-color: var(--accent-amber) !important;
 }
-.stSlider [data-baseweb="slider"] > div > div {
-    background: var(--accent-amber) !important;
-}
-/* Fallback: catch Streamlit's default inline red styling wherever it appears */
-.stSlider div[style*="rgb(255"] {
+[data-testid="stSlider"] div[data-baseweb="slider"] div[role="slider"] {
     background-color: var(--accent-amber) !important;
     border-color: var(--accent-amber) !important;
+    box-shadow: none !important;
 }
-.stSlider div[style*="background-color"] {
-    background-color: var(--accent-amber) !important;
+/* The current-value label shown above the slider handle also inherits theme color inline */
+[data-testid="stSlider"] div[style*="color"] {
+    color: var(--accent-amber) !important;
+}
+[data-testid="stThumbValue"] {
+    color: var(--accent-amber) !important;
 }
 
 /* Button */
