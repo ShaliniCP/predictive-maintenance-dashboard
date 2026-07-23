@@ -131,10 +131,15 @@ st.markdown("""
 }
 
 /* ---------- Streamlit widget overrides ---------- */
+/* Unify all input labels (selectbox + slider) to the same quiet, consistent style */
+[data-testid="stWidgetLabel"] p,
+[data-testid="stWidgetLabel"] label,
+[data-testid="stSelectbox"] label,
 [data-testid="stSlider"] label {
     font-family: 'IBM Plex Sans', sans-serif !important;
     color: var(--text-muted) !important;
     font-size: 13px !important;
+    font-weight: 400 !important;
 }
 [data-testid="stSlider"] {
     padding-bottom: 6px;
@@ -143,6 +148,15 @@ div[data-baseweb="select"] > div {
     background-color: var(--bg-panel-alt) !important;
     border-color: var(--border-col) !important;
     color: var(--text-primary) !important;
+}
+/* Mute the help tooltip icon */
+[data-testid="stTooltipIcon"] svg {
+    color: var(--text-muted) !important;
+    opacity: 0.6;
+}
+/* Darken the unfilled portion of the slider track to match the dark theme */
+[data-testid="stSlider"] div[data-baseweb="slider"] > div:first-child {
+    background: var(--border-col) !important;
 }
 /* Force amber on any inline-styled element inside the slider (covers both hex and rgb formats
    Streamlit may use for the filled track + thumb), while leaving the unfilled track untouched. */
@@ -368,7 +382,7 @@ with right:
                 """, unsafe_allow_html=True)
         else:
             st.markdown("""
-            <div style="text-align:center; padding: 60px 10px; color: var(--text-muted); font-family:'IBM Plex Sans',sans-serif; font-size:13px;">
+            <div style="text-align:center; padding: 36px 10px; color: var(--text-muted); font-family:'IBM Plex Sans',sans-serif; font-size:13px;">
                 Awaiting input &nbsp;—&nbsp; set sensor values on the left panel<br>and select <b style="color:var(--accent-amber);">RUN DIAGNOSTIC</b> to view results.
             </div>
             """, unsafe_allow_html=True)
