@@ -32,6 +32,18 @@ st.markdown("""
     color: var(--text-primary);
 }
 
+/* Recolor Streamlit's default top header/toolbar to match dark theme */
+[data-testid="stHeader"] {
+    background-color: var(--bg-primary) !important;
+}
+[data-testid="stToolbar"] {
+    background-color: var(--bg-primary) !important;
+}
+[data-testid="stDecoration"] {
+    background-image: none !important;
+    background-color: var(--bg-primary) !important;
+}
+
 /* Kill default Streamlit padding blocks a bit */
 .block-container {
     padding-top: 2rem;
@@ -89,13 +101,14 @@ st.markdown("""
     color: var(--accent-amber);
 }
 
-/* ---------- Panel wrapper ---------- */
-.panel {
+/* ---------- Panel wrapper (native st.container border) ---------- */
+[data-testid="stVerticalBlockBorderWrapper"] {
     background: var(--bg-panel);
-    border: 1px solid var(--border-col);
-    border-radius: 3px;
-    padding: 22px 24px;
-    height: 100%;
+    border: 1px solid var(--border-col) !important;
+    border-radius: 3px !important;
+}
+[data-testid="stVerticalBlockBorderWrapper"] > div {
+    background: var(--bg-panel);
 }
 
 /* ---------- Sensor row w/ LED ---------- */
@@ -133,10 +146,18 @@ div[data-baseweb="select"] > div {
 }
 .stSlider [data-baseweb="slider"] div[role="slider"] {
     background-color: var(--accent-amber) !important;
-    border: 2px solid #14181C !important;
+    border-color: var(--accent-amber) !important;
 }
 .stSlider [data-baseweb="slider"] > div > div {
     background: var(--accent-amber) !important;
+}
+/* Fallback: catch Streamlit's default inline red styling wherever it appears */
+.stSlider div[style*="rgb(255"] {
+    background-color: var(--accent-amber) !important;
+    border-color: var(--accent-amber) !important;
+}
+.stSlider div[style*="background-color"] {
+    background-color: var(--accent-amber) !important;
 }
 
 /* Button */
@@ -287,69 +308,66 @@ FEATURE_IMPORTANCE = {
 }
 
 with left:
-    st.markdown('<div class="panel">', unsafe_allow_html=True)
-    st.markdown('<div class="section-label"><span>01</span> &nbsp;Sensor Input Panel</div>', unsafe_allow_html=True)
+    with st.container(border=True):
+        st.markdown('<div class="section-label"><span>01</span> &nbsp;Sensor Input Panel</div>', unsafe_allow_html=True)
 
-    machine_type = st.selectbox("Machine Type", ["L", "M", "H"], help="L = Low, M = Medium, H = High quality variant")
-    air_temp = st.slider("Air Temperature [K]", 295.0, 305.0, 298.0, 0.1)
-    process_temp = st.slider("Process Temperature [K]", 305.0, 315.0, 308.0, 0.1)
-    rot_speed = st.slider("Rotational Speed [rpm]", 1000, 2900, 1500)
-    torque = st.slider("Torque [Nm]", 0.0, 80.0, 40.0, 0.5)
-    tool_wear = st.slider("Tool Wear [min]", 0, 260, 100)
+        machine_type = st.selectbox("Machine Type", ["L", "M", "H"], help="L = Low, M = Medium, H = High quality variant")
+        air_temp = st.slider("Air Temperature [K]", 295.0, 305.0, 298.0, 0.1)
+        process_temp = st.slider("Process Temperature [K]", 305.0, 315.0, 308.0, 0.1)
+        rot_speed = st.slider("Rotational Speed [rpm]", 1000, 2900, 1500)
+        torque = st.slider("Torque [Nm]", 0.0, 80.0, 40.0, 0.5)
+        tool_wear = st.slider("Tool Wear [min]", 0, 260, 100)
 
-    predict_clicked = st.button("Run Diagnostic")
-    st.markdown('</div>', unsafe_allow_html=True)
+        predict_clicked = st.button("Run Diagnostic")
 
 with right:
-    st.markdown('<div class="panel">', unsafe_allow_html=True)
-    st.markdown('<div class="section-label"><span>02</span> &nbsp;Diagnostic Output</div>', unsafe_allow_html=True)
+    with st.container(border=True):
+        st.markdown('<div class="section-label"><span>02</span> &nbsp;Diagnostic Output</div>', unsafe_allow_html=True)
 
-    if predict_clicked:
-        type_encoded = le.transform([machine_type])[0]
-        features = np.array([[type_encoded, air_temp, process_temp, rot_speed, torque, tool_wear]])
-        features_scaled = scaler.transform(features)
+        if predict_clicked:
+            type_encoded = le.transform([machine_type])[0]
+            features = np.array([[type_encoded, air_temp, process_temp, rot_speed, torque, tool_wear]])
+            features_scaled = scaler.transform(features)
 
-        prediction = model.predict(features_scaled)[0]
-        probability = model.predict_proba(features_scaled)[0][1]
-        pct = probability * 100
+            prediction = model.predict(features_scaled)[0]
+            probability = model.predict_proba(features_scaled)[0][1]
+            pct = probability * 100
 
-        color = "var(--accent-teal)" if pct < 30 else ("var(--accent-amber)" if pct < 70 else "var(--accent-red)")
+            color = "var(--accent-teal)" if pct < 30 else ("var(--accent-amber)" if pct < 70 else "var(--accent-red)")
 
-        st.markdown(f"""
-        <div class="readout-wrap">
-            <div class="readout-value" style="color:{color};">{pct:05.1f}%</div>
-            <div class="readout-caption">Failure Risk Probability</div>
-        </div>
-        <div class="meter-wrap">
-            <div class="meter-track">
-                <div class="meter-needle" style="left:{min(max(pct,1),99)}%;"></div>
-            </div>
-            <div class="meter-ticks"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        if prediction == 1:
-            st.markdown(f'<div class="status-banner status-fail">⚠ FAILURE PREDICTED — recommend inspection before continued operation</div>', unsafe_allow_html=True)
-        else:
-            st.markdown(f'<div class="status-banner status-ok">✓ NO FAILURE PREDICTED — unit operating within learned normal range</div>', unsafe_allow_html=True)
-
-        st.markdown('<div style="height:22px;"></div>', unsafe_allow_html=True)
-        st.markdown('<div class="section-label" style="font-size:11px; border:none; padding-bottom:0;">Model Feature Weighting</div>', unsafe_allow_html=True)
-        for feat, val in FEATURE_IMPORTANCE.items():
-            width = int(val / max(FEATURE_IMPORTANCE.values()) * 100)
             st.markdown(f"""
-            <div class="feat-row">
-                <div class="feat-label"><span>{feat}</span><span>{val:.3f}</span></div>
-                <div class="feat-bar-bg"><div class="feat-bar-fill" style="width:{width}%;"></div></div>
+            <div class="readout-wrap">
+                <div class="readout-value" style="color:{color};">{pct:05.1f}%</div>
+                <div class="readout-caption">Failure Risk Probability</div>
+            </div>
+            <div class="meter-wrap">
+                <div class="meter-track">
+                    <div class="meter-needle" style="left:{min(max(pct,1),99)}%;"></div>
+                </div>
+                <div class="meter-ticks"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>
             </div>
             """, unsafe_allow_html=True)
-    else:
-        st.markdown("""
-        <div style="text-align:center; padding: 60px 10px; color: var(--text-muted); font-family:'IBM Plex Sans',sans-serif; font-size:13px;">
-            Awaiting input &nbsp;—&nbsp; set sensor values on the left panel<br>and select <b style="color:var(--accent-amber);">RUN DIAGNOSTIC</b> to view results.
-        </div>
-        """, unsafe_allow_html=True)
 
-    st.markdown('</div>', unsafe_allow_html=True)
+            if prediction == 1:
+                st.markdown(f'<div class="status-banner status-fail">⚠ FAILURE PREDICTED — recommend inspection before continued operation</div>', unsafe_allow_html=True)
+            else:
+                st.markdown(f'<div class="status-banner status-ok">✓ NO FAILURE PREDICTED — unit operating within learned normal range</div>', unsafe_allow_html=True)
+
+            st.markdown('<div style="height:22px;"></div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-label" style="font-size:11px; border:none; padding-bottom:0;">Model Feature Weighting</div>', unsafe_allow_html=True)
+            for feat, val in FEATURE_IMPORTANCE.items():
+                width = int(val / max(FEATURE_IMPORTANCE.values()) * 100)
+                st.markdown(f"""
+                <div class="feat-row">
+                    <div class="feat-label"><span>{feat}</span><span>{val:.3f}</span></div>
+                    <div class="feat-bar-bg"><div class="feat-bar-fill" style="width:{width}%;"></div></div>
+                </div>
+                """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div style="text-align:center; padding: 60px 10px; color: var(--text-muted); font-family:'IBM Plex Sans',sans-serif; font-size:13px;">
+                Awaiting input &nbsp;—&nbsp; set sensor values on the left panel<br>and select <b style="color:var(--accent-amber);">RUN DIAGNOSTIC</b> to view results.
+            </div>
+            """, unsafe_allow_html=True)
 
 st.markdown('<div class="footer-note">LOGISTIC REGRESSION (CLASS-BALANCED) &nbsp;·&nbsp; AI4I 2020 PREDICTIVE MAINTENANCE DATASET (UCI) &nbsp;·&nbsp; BUILT BY SHALINI</div>', unsafe_allow_html=True)
